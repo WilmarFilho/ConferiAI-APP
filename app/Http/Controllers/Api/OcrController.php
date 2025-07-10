@@ -33,6 +33,7 @@ class OcrController extends Controller
         }
 
         $imageAnnotator = null;
+
         try {
             $imageContent = file_get_contents($request->file('file'));
             
@@ -46,8 +47,9 @@ class OcrController extends Controller
             $annotation = $response->getResponses()[0]->getFullTextAnnotation();
 
             if (!$annotation) {
-                 return response()->json(['message' => 'Nenhum texto foi detectado na imagem.', 'text_bruto' => ''], 400);
+                 return response()->json(['message' => 'Nenhum texto foi detectado na imagem.', 'text_bruto' => ''], 200);
             }
+
             $textoCompleto = $annotation->getText();
 
             // 2. Extração inteligente dos dados do recibo usando IA
@@ -58,7 +60,7 @@ class OcrController extends Controller
                     'Mensagem' => 'Não foi possível identificar o tipo de jogo ou o número do concurso no recibo.',
                     'Texto Bruto' => $textoCompleto,
                     'Apostas' => $dadosRecibo['apostas'] ?? []
-                 ], 400);
+                 ], 200);
             }
 
             // 3. Consulta do resultado oficial na API da Caixa
@@ -205,23 +207,18 @@ class OcrController extends Controller
         }
         
         foreach ($apostasUsuario as $aposta) {
-            // ==================================================================
-            // INÍCIO DA CORREÇÃO CRÍTICA
             // Transforma cada número da aposta (ex: 6) em uma string com 2 dígitos e zero à esquerda (ex: "06")
             // para garantir uma comparação exata com os dados da API da Caixa.
             $apostaFormatada = array_map(function($num) {
                 return sprintf('%02d', $num);
             }, $aposta);
-            
-            // Usa o array formatado para a comparação
+    
             $numerosAcertados = array_intersect($apostaFormatada, $numerosSorteados);
-            // FIM DA CORREÇÃO CRÍTICA
-            // ==================================================================
-
+            
             $quantidadeAcertos = count($numerosAcertados);
 
             $detalheAposta = [
-                'aposta' => $aposta, // Mantém a aposta original para exibição
+                'aposta' => $aposta,
                 'acertos' => $quantidadeAcertos,
                 'numerosAcertados' => array_values($numerosAcertados),
                 'isPremiada' => false,
